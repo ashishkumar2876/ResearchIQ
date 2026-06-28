@@ -1,14 +1,15 @@
-// package com.research.ai_analysis_service.repository;
+package com.research.ai_analysis_service.repository;
 
-// import com.research.ai_analysis_service.entity.Pa;
-// import com.research.ai_analysis_service.service.PaperAnalysisService;
+import java.util.Optional;
 
-// import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
 
-// import java.util.Optional;
+import com.research.ai_analysis_service.entity.PaperAnalysis;
 
-// public interface PaperAnalysisRepository
-//         extends JpaRepository<PaperAnalysisService, Long> {
+@Repository
+public interface PaperAnalysisRepository extends MongoRepository<PaperAnalysis, String> {
 
-//     Optional<PaperAnalysisService> findByPaperId(Long paperId);
-// }
+    Optional<PaperAnalysis> findByPaperId(Long paperId);
+
+}
