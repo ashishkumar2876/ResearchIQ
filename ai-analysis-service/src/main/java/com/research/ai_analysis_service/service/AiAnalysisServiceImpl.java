@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.research.ai_analysis_service.dto.AnalysisResponse;
 import com.research.ai_analysis_service.dto.GeminiRequest;
 import com.research.ai_analysis_service.dto.GeminiResponse;
+import com.research.ai_analysis_service.entity.PaperAnalysis;
+import com.research.ai_analysis_service.repository.PaperAnalysisRepository;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -15,13 +18,16 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
 
         private final WebClient webClient;
         private final ObjectMapper objectMapper;
+        private final PaperAnalysisRepository paperAnalysisRepository;
 
         @Value("${gemini.api.key}")
         private String apiKey;
 
-        public AiAnalysisServiceImpl(WebClient webClient, ObjectMapper objectMapper) {
+        public AiAnalysisServiceImpl(WebClient webClient, ObjectMapper objectMapper,
+                        PaperAnalysisRepository paperAnalysisRepository) {
                 this.webClient = webClient;
                 this.objectMapper = objectMapper;
+                this.paperAnalysisRepository = paperAnalysisRepository;
         }
 
         @Override
@@ -82,5 +88,21 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
                 } catch (Exception e) {
                         throw new RuntimeException("Failed to parse Gemini response", e);
                 }
+        }
+
+        @Override
+        public List<PaperAnalysis> getAllAnalyses() {
+                return paperAnalysisRepository.findAll();
+        }
+
+        @Override
+        public PaperAnalysis getAnalysisByPaperId(Long paperId) {
+                return paperAnalysisRepository.findByPaperId(paperId)
+                                .orElseThrow(() -> new RuntimeException("Analysis not found"));
+        }
+
+        @Override
+        public void deleteAnalysis(Long paperId) {
+                paperAnalysisRepository.deleteByPaperId(paperId);
         }
 }

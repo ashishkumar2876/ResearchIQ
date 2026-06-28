@@ -12,4 +12,6 @@ public interface PaperAnalysisRepository extends MongoRepository<PaperAnalysis, 
 
     Optional<PaperAnalysis> findByPaperId(Long paperId);
 
+    void deleteByPaperId(Long paperId);
+
 }
