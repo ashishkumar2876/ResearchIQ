@@ -35,10 +35,11 @@ public class PaperAnalysisController {
         return aiAnalysisService.getAnalysisByPaperId(paperId);
     }
 
-    @DeleteMapping("/id/{id}")
-    public String deleteAnalysis(@PathVariable Long id) {
-        aiAnalysisService.deleteAnalysis(id);
-        return "Analysis deleted successfully";
-    }
+    
+    @GetMapping("/dashboard")
+    public List<PaperAnalysis> getDashboard(
+            @RequestHeader("X-User-Email") String userEmail) {
 
+        return aiAnalysisService.getDashboard(userEmail);
+    }
 }

@@ -7,9 +7,11 @@ import com.example.auth_service.entity.User;
 import com.example.auth_service.repository.UserRepository;
 import com.example.auth_service.util.JwtUtil;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -19,52 +21,60 @@ public class AuthServiceImpl implements AuthService {
 
     public AuthServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
-                           JwtUtil jwtUtil
-                        ) {
+                           JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtUtil=jwtUtil;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
     public String register(RegisterRequest request) {
 
+        log.info("Register request received for email={}", request.getEmail());
+
         if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("Registration failed - user already exists: {}", request.getEmail());
             return "User already exists";
         }
 
         User user = new User();
-
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
 
-        // Encrypt password before saving
-        user.setPassword(
-                passwordEncoder.encode(request.getPassword())
-        );
-
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole("USER");
 
         userRepository.save(user);
+
+        log.info("User registered successfully: {}", request.getEmail());
 
         return "User registered successfully";
     }
 
     @Override
-    public LoginResponse login(LoginRequest request){
+    public LoginResponse login(LoginRequest request) {
 
-        User user=userRepository.findByEmail(request.getEmail()).orElse(null);
-        if(user==null){
-            return new LoginResponse(null,"User not found");
+        log.info("Login attempt for email={}", request.getEmail());
+
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+
+        if (user == null) {
+            log.warn("Login failed - user not found: {}", request.getEmail());
+            return new LoginResponse(null, "User not found");
         }
 
-        boolean isPasswordValid=passwordEncoder.matches(request.getPassword(), user.getPassword());
+        boolean isPasswordValid =
+                passwordEncoder.matches(request.getPassword(), user.getPassword());
 
-        if(!isPasswordValid){
+        if (!isPasswordValid) {
+            log.warn("Login failed - invalid password for email={}", request.getEmail());
             return new LoginResponse(null, "Invalid password");
         }
 
-        String token=jwtUtil.generateToken(user.getEmail());
+        String token = jwtUtil.generateToken(user.getEmail(), user.getId());
+
+        log.info("Login successful for email={}", request.getEmail());
+
         return new LoginResponse(token, "Login successful");
     }
 }

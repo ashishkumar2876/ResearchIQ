@@ -50,8 +50,18 @@ public class PaperUploadListener {
 
         PaperAnalysis paperAnalysis = new PaperAnalysis();
 
-        paperAnalysis.setPaperId(event.getPaperId());
+        // -------- Paper Metadata --------
+        paperAnalysis.setPaperId(paper.getId());
 
+        paperAnalysis.setUploadedBy(paper.getUploadedBy());
+
+        paperAnalysis.setTitle(paper.getTitle());
+
+        paperAnalysis.setPdfUrl(paper.getPdfUrl());
+
+        paperAnalysis.setUploadedAt(paper.getUploadedAt());
+
+        // -------- AI Analysis --------
         paperAnalysis.setSummary(analysis.getSummary());
 
         paperAnalysis.setKeywords(analysis.getKeywords());

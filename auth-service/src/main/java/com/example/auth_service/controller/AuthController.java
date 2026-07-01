@@ -1,5 +1,6 @@
 package com.example.auth_service.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,6 +11,8 @@ import com.example.auth_service.dto.LoginRequest;
 import com.example.auth_service.dto.LoginResponse;
 import com.example.auth_service.dto.RegisterRequest;
 import com.example.auth_service.service.AuthService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/auth")
@@ -22,17 +25,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String register(@RequestBody RegisterRequest request) {
-        return authService.register(request);
+    public ResponseEntity<String> register(@RequestBody @Valid RegisterRequest request) {
+        String str= authService.register(request);
+        return ResponseEntity.ok(str);
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest request) {
-        return authService.login(request);
-    }
-
-    @GetMapping("/profile")
-    public String profile() {
-        return "Welcome to ResearchIQ";
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
+        LoginResponse res= authService.login(request);
+        return ResponseEntity.ok(res);
     }
 }

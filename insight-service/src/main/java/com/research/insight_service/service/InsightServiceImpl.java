@@ -2,19 +2,17 @@ package com.research.insight_service.service;
 
 import com.research.insight_service.client.AiAnalysisClient;
 import com.research.insight_service.client.GeminiClient;
-import com.research.insight_service.dto.CompareRequest;
-import com.research.insight_service.dto.LiteratureReviewRequest;
-import com.research.insight_service.dto.MarkdownResponse;
-import com.research.insight_service.dto.PaperAnalysisResponse;
-import com.research.insight_service.dto.ResearchGapRequest;
+import com.research.insight_service.dto.*;
 import com.research.insight_service.util.PromptBuilder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InsightServiceImpl implements InsightService {
@@ -26,83 +24,55 @@ public class InsightServiceImpl implements InsightService {
     @Override
     public MarkdownResponse getPaperInsights(Long paperId) {
 
-        // Fetch analysis from AI Analysis Service
+        log.info("Fetching insights for paperId={}", paperId);
+
         PaperAnalysisResponse analysis = aiAnalysisClient.getAnalysis(paperId);
 
-        // Convert analysis into text
-        String analysisText = """
-                Paper ID: %d
+        log.debug("Analysis fetched for paperId={} with noveltyScore={}",
+                paperId, analysis.getNoveltyScore());
 
-                Summary:
-                %s
+        String analysisText = buildAnalysisText(analysis);
 
-                Keywords:
-                %s
-
-                Research Domain:
-                %s
-
-                Novelty Score:
-                %d
-
-                Research Gap:
-                %s
-
-                Future Work:
-                %s
-
-                Limitations:
-                %s
-
-                Difficulty:
-                %s
-                """.formatted(
-                analysis.getPaperId(),
-                analysis.getSummary(),
-                String.join(", ", analysis.getKeywords()),
-                analysis.getResearchDomain(),
-                analysis.getNoveltyScore(),
-                analysis.getResearchGap(),
-                analysis.getFutureWork(),
-                analysis.getLimitations(),
-                analysis.getDifficulty());
-
-        // Build prompt
         String prompt = promptBuilder.buildInsightPrompt(analysisText);
 
-        // Ask Gemini
+        log.debug("Generated prompt for paperId={}", paperId);
+
         String markdown = geminiClient.generateContent(prompt);
 
-        // Return markdown
+        log.info("Insights generated successfully for paperId={}", paperId);
+
         return new MarkdownResponse(markdown);
     }
 
     @Override
     public MarkdownResponse comparePapers(CompareRequest request) {
 
-        // Step 1: Fetch analyses of selected papers
+        log.info("Comparing papers: {}", request.getPaperIds());
+
         List<PaperAnalysisResponse> analyses = request.getPaperIds()
                 .stream()
                 .map(aiAnalysisClient::getAnalysis)
                 .toList();
 
-        // Step 2: Convert all analyses into text
+        log.debug("Fetched {} analyses for comparison", analyses.size());
+
         String analysesText = analyses.stream()
                 .map(this::convertAnalysisToText)
                 .collect(Collectors.joining("\n\n----------------------------------------\n\n"));
 
-        // Step 3: Build Gemini prompt
         String prompt = promptBuilder.buildComparisonPrompt(analysesText);
 
-        // Step 4: Ask Gemini
         String markdown = geminiClient.generateContent(prompt);
 
-        // Step 5: Return result
+        log.info("Comparison generated for {} papers", request.getPaperIds().size());
+
         return new MarkdownResponse(markdown);
     }
 
     @Override
     public MarkdownResponse discoverResearchGap(ResearchGapRequest request) {
+
+        log.info("Finding research gaps for papers: {}", request.getPaperIds());
 
         List<PaperAnalysisResponse> analyses = request.getPaperIds()
                 .stream()
@@ -119,11 +89,15 @@ public class InsightServiceImpl implements InsightService {
 
         String markdown = geminiClient.generateContent(prompt);
 
+        log.info("Research gap analysis completed");
+
         return new MarkdownResponse(markdown);
     }
 
     @Override
     public MarkdownResponse generateLiteratureReview(LiteratureReviewRequest request) {
+
+        log.info("Generating literature review for papers: {}", request.getPaperIds());
 
         List<PaperAnalysisResponse> analyses = request.getPaperIds()
                 .stream()
@@ -140,6 +114,8 @@ public class InsightServiceImpl implements InsightService {
                 analysisText.toString());
 
         String markdown = geminiClient.generateContent(prompt);
+
+        log.info("Literature review generated successfully");
 
         return new MarkdownResponse(markdown);
     }
@@ -184,4 +160,8 @@ public class InsightServiceImpl implements InsightService {
                 analysis.getDifficulty());
     }
 
+    // Optional helper (cleaner logs + reuse)
+    private String buildAnalysisText(PaperAnalysisResponse analysis) {
+        return convertAnalysisToText(analysis);
+    }
 }

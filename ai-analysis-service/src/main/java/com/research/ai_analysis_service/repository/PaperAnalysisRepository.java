@@ -1,5 +1,6 @@
 package com.research.ai_analysis_service.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -13,5 +14,7 @@ public interface PaperAnalysisRepository extends MongoRepository<PaperAnalysis, 
     Optional<PaperAnalysis> findByPaperId(Long paperId);
 
     void deleteByPaperId(Long paperId);
+
+    List<PaperAnalysis> findByUploadedBy(String uploadedBy);
 
 }

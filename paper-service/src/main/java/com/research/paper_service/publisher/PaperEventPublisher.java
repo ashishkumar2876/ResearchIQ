@@ -1,12 +1,15 @@
 package com.research.paper_service.publisher;
 
-import com.research.paper_service.config.RabbitMQConfig;
-import com.research.paper_service.event.PaperUploadedEvent;
-import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.research.paper_service.config.RabbitMQConfig;
+import com.research.paper_service.event.PaperDeletedEvent;
+import com.research.paper_service.event.PaperUploadedEvent;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class PaperEventPublisher {
 
@@ -23,9 +26,20 @@ public class PaperEventPublisher {
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.PAPER_EXCHANGE,
                 RabbitMQConfig.PAPER_ROUTING_KEY,
-                event
-        );
+                event);
 
-        System.out.println("Published Event: " + paperId);
+        log.info("Published Upload Event for Paper ID={}", paperId);
+    }
+
+    public void publishPaperDeletedEvent(Long paperId) {
+
+        PaperDeletedEvent event = new PaperDeletedEvent(paperId);
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.PAPER_EXCHANGE,
+                RabbitMQConfig.PAPER_DELETE_ROUTING_KEY,
+                event);
+
+        log.info("Published Delete Event for Paper ID={}", paperId);
     }
 }

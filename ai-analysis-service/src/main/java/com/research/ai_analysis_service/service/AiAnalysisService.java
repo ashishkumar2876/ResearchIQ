@@ -13,5 +13,5 @@ public interface AiAnalysisService {
 
     List<PaperAnalysis> getAllAnalyses();
 
-    void deleteAnalysis(Long id);
+    List<PaperAnalysis> getDashboard(String uploadedBy);
 }

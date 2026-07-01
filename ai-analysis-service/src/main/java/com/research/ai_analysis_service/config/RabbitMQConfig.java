@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     public static final String PAPER_UPLOAD_QUEUE = "paper.upload.queue";
+    public static final String PAPER_DELETE_QUEUE = "paper.delete.queue";
 
     @Bean
     public Jackson2JsonMessageConverter messageConverter() {
@@ -18,8 +19,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue queue() {
+    public Queue paperUploadQueue() {
         return new Queue(PAPER_UPLOAD_QUEUE);
+    }
+
+    @Bean
+    public Queue paperDeleteQueue() {
+        return new Queue(PAPER_DELETE_QUEUE);
     }
 
     @Bean

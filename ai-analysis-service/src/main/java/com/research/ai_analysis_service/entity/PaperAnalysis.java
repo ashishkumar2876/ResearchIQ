@@ -1,4 +1,5 @@
 package com.research.ai_analysis_service.entity;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -14,8 +15,18 @@ public class PaperAnalysis {
     @Id
     private String id;
 
+    // ---------------- Paper Metadata ----------------
     private Long paperId;
 
+    private String uploadedBy;
+
+    private String title;
+
+    private String pdfUrl;
+
+    private LocalDateTime uploadedAt;
+
+    // ---------------- AI Analysis ----------------
     private String summary;
 
     private List<String> keywords;
@@ -33,5 +44,4 @@ public class PaperAnalysis {
     private String difficulty;
 
     private LocalDateTime analyzedAt;
-
 }

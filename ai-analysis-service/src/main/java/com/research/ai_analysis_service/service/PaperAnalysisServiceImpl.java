@@ -1,10 +1,14 @@
 package com.research.ai_analysis_service.service;
 
-import com.research.ai_analysis_service.client.PaperServiceClient;
-import com.research.ai_analysis_service.dto.PaperResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import com.research.ai_analysis_service.client.PaperServiceClient;
+import com.research.ai_analysis_service.dto.PaperResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaperAnalysisServiceImpl implements PaperAnalysisService {
@@ -14,12 +18,14 @@ public class PaperAnalysisServiceImpl implements PaperAnalysisService {
     @Override
     public void analyzePaper(Long paperId) {
 
-        PaperResponse paper =
-                paperServiceClient.getPaperById(paperId);
+        log.info("Fetching paper details for Paper ID={}", paperId);
 
-        System.out.println("Paper Title : " + paper.getTitle());
+        PaperResponse paper = paperServiceClient.getPaperById(paperId);
 
-        System.out.println("PDF URL : " + paper.getPdfUrl());
+        log.info("Successfully fetched paper details.");
+        log.info("Paper ID={}", paperId);
+        log.info("Paper Title={}", paper.getTitle());
+        log.info("PDF URL={}", paper.getPdfUrl());
 
     }
 }

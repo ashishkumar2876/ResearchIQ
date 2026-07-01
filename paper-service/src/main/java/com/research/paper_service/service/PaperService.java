@@ -10,6 +10,6 @@ public interface PaperService {
 
     Paper getPaperById(Long id);
 
-    void deletePaper(Long id);
+    void deletePaper(Long id, String userEmail);
 
 }

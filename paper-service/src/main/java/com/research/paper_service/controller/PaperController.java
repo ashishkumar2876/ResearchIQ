@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,7 +25,7 @@ public class PaperController {
 
     @PostMapping("/upload")
     public String uploadPaper(@RequestParam("file") MultipartFile file,
-            @RequestParam("uploadedBy") String uploadedBy) {
+            @RequestHeader("X-User-Email") String uploadedBy) {
         return paperService.uploadPaper(file, uploadedBy);
     }
 
@@ -36,8 +37,10 @@ public class PaperController {
 
     @DeleteMapping("/{id}")
     public String deletePaper(
-            @PathVariable Long id) {
-        paperService.deletePaper(id);
+            @PathVariable Long id,
+            @RequestHeader("X-User-Email") String userEmail) {
+
+        paperService.deletePaper(id, userEmail);
 
         return "Paper deleted successfully";
     }
