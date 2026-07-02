@@ -1,91 +1,200 @@
-# ResearchIQ Backend
+# ResearchIQ
 
-ResearchIQ is a Dockerized Spring Boot microservices backend for a research paper intelligence platform. It supports user authentication, research paper upload, cloud file storage, AI-powered paper analysis, insight generation, asynchronous event processing, and containerized deployment.
+ResearchIQ is a full-stack AI-powered research paper intelligence platform built with React and Spring Boot microservices. It supports user authentication, PDF upload, cloud file storage, asynchronous AI paper analysis, AI-generated summaries, paper comparison, research gap discovery, literature review generation, and Dockerized backend deployment.
+
+---
 
 ## Tech Stack
 
-* Java 17
-* Spring Boot
-* Spring Cloud Gateway
-* Netflix Eureka Service Discovery
-* Spring Security + JWT
-* Spring Data JPA
-* MySQL
-* MongoDB Atlas
-* RabbitMQ
-* Cloudinary
-* Gemini API
-* Docker
-* Docker Compose
+### Backend
+
+- Java 17
+- Spring Boot
+- Spring Cloud Gateway
+- Netflix Eureka Service Discovery
+- Spring Security + JWT
+- Spring Data JPA / Hibernate
+- MySQL
+- MongoDB Atlas
+- RabbitMQ
+- Cloudinary
+- Gemini API
+- OpenFeign
+- Docker
+- Docker Compose
+
+### Frontend
+
+- React
+- Vite
+- Tailwind CSS
+- Axios
+- React Router
+- Lucide React
+- React Markdown
+- Remark GFM
+
+---
 
 ## Microservices
 
-| Service             |         Port | Description                                    |
-| ------------------- | -----------: | ---------------------------------------------- |
-| Discovery Service   |         8761 | Eureka service registry                        |
-| API Gateway         |         8080 | Single entry point for frontend/API clients    |
-| Auth Service        |         8081 | User registration, login, JWT authentication   |
-| Paper Service       |         8082 | PDF upload, Cloudinary storage, paper metadata |
-| AI Analysis Service |         8083 | AI-based paper analysis using Gemini           |
-| Insight Service     |         8084 | Advanced research insights and AI utilities    |
-| MySQL               |    3307:3306 | Stores auth and paper data                     |
-| RabbitMQ            | 5672 / 15672 | Message broker for async processing            |
+| Service | Port | Description |
+|---|---:|---|
+| Discovery Service | 8761 | Eureka service registry |
+| API Gateway | 8080 | Single entry point for frontend/API clients |
+| Auth Service | 8081 | User registration, login, JWT authentication |
+| Paper Service | 8082 | PDF upload, Cloudinary storage, paper metadata |
+| AI Analysis Service | 8083 | AI-powered paper analysis using Gemini |
+| Insight Service | 8084 | Advanced research insights, comparison, gaps, literature review |
+| MySQL | 3307:3306 | Stores auth and paper metadata |
+| RabbitMQ | 5672 / 15672 | Message broker for asynchronous processing |
+| React Frontend | 5173 | User interface for authentication, uploads, dashboard, and research tools |
+
+---
 
 ## Architecture
 
 ```text
-Frontend
-   |
-   v
-API Gateway
-   |
-   v
-Eureka Discovery
-   |
-   +--> Auth Service  ---> MySQL: researchiq_auth
-   |
-   +--> Paper Service ---> MySQL: researchiq_paper
-   |          |
-   |          v
-   |       RabbitMQ
-   |
-   +--> AI Analysis Service ---> MongoDB Atlas + Gemini API
-   |
-   +--> Insight Service -------> MongoDB Atlas + Gemini API
+React Frontend :5173
+      |
+      v
+API Gateway :8080
+      |
+      v
+Eureka Discovery :8761
+      |
+      +--> Auth Service :8081
+      |        |
+      |        v
+      |     MySQL - researchiq_auth
+      |
+      +--> Paper Service :8082
+      |        |
+      |        +--> MySQL - researchiq_paper
+      |        |
+      |        +--> Cloudinary
+      |        |
+      |        v
+      |     RabbitMQ
+      |
+      +--> AI Analysis Service :8083
+      |        |
+      |        +--> MongoDB Atlas
+      |        |
+      |        +--> Gemini API
+      |
+      +--> Insight Service :8084
+               |
+               +--> MongoDB Atlas
+               |
+               +--> Gemini API
 ```
+
+---
+
+## Core Flow
+
+```text
+User registers/logs in
+    |
+    v
+JWT token generated
+    |
+    v
+Frontend stores token and calls API Gateway
+    |
+    v
+User uploads PDF
+    |
+    v
+Paper Service stores PDF in Cloudinary
+    |
+    v
+Paper metadata saved in MySQL
+    |
+    v
+RabbitMQ upload event published
+    |
+    v
+AI Analysis Service consumes event
+    |
+    v
+PDF text is extracted
+    |
+    v
+Gemini generates paper analysis
+    |
+    v
+Analysis result saved in MongoDB
+    |
+    v
+Frontend displays dashboard and research tools
+```
+
+---
 
 ## Features
 
-* User registration and login
-* JWT-based authentication
-* API Gateway based routing
-* Eureka service discovery
-* PDF upload support
-* Cloudinary file storage
-* MySQL persistence
-* MongoDB Atlas integration
-* RabbitMQ-based asynchronous communication
-* AI analysis using Gemini API
-* Global exception handling
-* Request validation
-* CORS configuration
-* Dockerized microservices
-* Docker Compose orchestration
+### Backend Features
+
+- User registration and login
+- JWT-based authentication
+- API Gateway routing
+- Eureka service discovery
+- PDF upload support
+- Cloudinary file storage
+- MySQL persistence for users and paper metadata
+- MongoDB Atlas persistence for AI analysis
+- RabbitMQ-based asynchronous event processing
+- Gemini-powered research paper analysis
+- AI-generated paper summary, keywords, novelty score, research gap, limitations, and future work
+- Paper comparison
+- Research gap discovery
+- Literature review generation
+- Delete flow for paper metadata and analysis cleanup
+- CORS configuration for frontend integration
+- Dockerized microservices
+- Docker Compose orchestration
+
+### Frontend Features
+
+- Login and registration pages
+- Protected routes
+- JWT-based frontend authentication
+- Dashboard for uploaded/analyzed papers
+- PDF upload from UI
+- Research Center workspace
+- Select papers for AI actions
+- AI paper insights
+- Paper comparison
+- Research gap analysis
+- Literature review generation
+- Markdown popup rendering for AI results
+- Scrollable comparison tables
+- Copy and download AI-generated markdown results
+- Paper details modal with open/download PDF options
+- Delete paper from UI
+
+---
 
 ## Prerequisites
 
 Install the following:
 
-* Java 17
-* Maven
-* Docker Desktop
-* Docker Compose
-* MySQL client or MySQL Workbench optional
-* Postman optional
+- Java 17
+- Maven
+- Docker Desktop
+- Docker Compose
+- Node.js
+- npm
+- MySQL client or MySQL Workbench optional
+- Postman optional
+
+---
 
 ## Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root for backend services.
 
 ```env
 MYSQL_ROOT_PASSWORD=your_mysql_root_password
@@ -93,6 +202,7 @@ DB_USERNAME=root
 DB_PASSWORD=your_mysql_password
 
 JWT_SECRET=your_jwt_secret
+JWT_EXPIRATION=86400000
 
 MONGO_URI=your_mongodb_atlas_uri
 GEMINI_API_KEY=your_gemini_api_key
@@ -102,7 +212,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 
 Do not commit `.env`.
 
-Use `.env.example` to document required variables:
+Create `.env.example` in the project root:
 
 ```env
 MYSQL_ROOT_PASSWORD=your_mysql_root_password
@@ -110,12 +220,41 @@ DB_USERNAME=root
 DB_PASSWORD=your_mysql_password
 
 JWT_SECRET=your_jwt_secret
+JWT_EXPIRATION=86400000
 
 MONGO_URI=your_mongodb_atlas_uri
 GEMINI_API_KEY=your_gemini_api_key
 
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 ```
+
+For the frontend, create:
+
+```text
+researchiq-frontend/.env
+```
+
+Content:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+Also create:
+
+```text
+researchiq-frontend/.env.example
+```
+
+Content:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+Do not commit the real frontend `.env`.
+
+---
 
 ## MySQL Initialization
 
@@ -134,12 +273,20 @@ CREATE DATABASE IF NOT EXISTS researchiq_auth;
 CREATE DATABASE IF NOT EXISTS researchiq_paper;
 ```
 
-## Run with Docker Compose
+---
+
+## Run Backend with Docker Compose
 
 From the project root:
 
 ```bash
 docker compose up -d
+```
+
+Build and start all services:
+
+```bash
+docker compose up -d --build
 ```
 
 Check running containers:
@@ -154,6 +301,12 @@ Stop all containers:
 docker compose down
 ```
 
+Stop containers and remove volumes:
+
+```bash
+docker compose down -v
+```
+
 View logs:
 
 ```bash
@@ -164,14 +317,51 @@ docker logs -f ai-analysis-service
 docker logs -f insight-service
 ```
 
+---
+
+## Run Frontend
+
+Go to the frontend directory:
+
+```bash
+cd researchiq-frontend
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start development server:
+
+```bash
+npm run dev
+```
+
+Frontend URL:
+
+```text
+http://localhost:5173
+```
+
+Build frontend:
+
+```bash
+npm run build
+```
+
+---
+
 ## Service URLs
 
-| Tool/Service       | URL                    |
-| ------------------ | ---------------------- |
-| API Gateway        | http://localhost:8080  |
-| Eureka Dashboard   | http://localhost:8761  |
+| Tool / Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API Gateway | http://localhost:8080 |
+| Eureka Dashboard | http://localhost:8761 |
 | RabbitMQ Dashboard | http://localhost:15672 |
-| MySQL Host Access  | localhost:3307         |
+| MySQL Host Access | localhost:3307 |
 
 RabbitMQ default login:
 
@@ -180,7 +370,9 @@ username: guest
 password: guest
 ```
 
-## API Testing
+---
+
+# API Documentation
 
 All APIs should be tested through the API Gateway:
 
@@ -190,15 +382,23 @@ http://localhost:8080
 
 Do not call individual services directly from the frontend.
 
-### Auth APIs
+---
 
-Register:
+## Auth APIs
+
+### Register User
+
+```http
+POST /auth/register
+```
+
+Full URL:
 
 ```http
 POST http://localhost:8080/auth/register
 ```
 
-Example body:
+Request body:
 
 ```json
 {
@@ -208,13 +408,21 @@ Example body:
 }
 ```
 
-Login:
+---
+
+### Login User
+
+```http
+POST /auth/login
+```
+
+Full URL:
 
 ```http
 POST http://localhost:8080/auth/login
 ```
 
-Example body:
+Request body:
 
 ```json
 {
@@ -223,9 +431,37 @@ Example body:
 }
 ```
 
-### Paper APIs
+Response example:
 
-Upload paper:
+```json
+{
+  "token": "jwt_token_here"
+}
+```
+
+---
+
+## Paper APIs
+
+All paper APIs require authentication.
+
+Header:
+
+```http
+Authorization: Bearer <token>
+```
+
+The frontend should only send the JWT token. The API Gateway extracts the user email from the token and forwards it internally as `X-User-Email`.
+
+---
+
+### Upload Paper
+
+```http
+POST /papers/upload
+```
+
+Full URL:
 
 ```http
 POST http://localhost:8080/papers/upload
@@ -233,9 +469,8 @@ POST http://localhost:8080/papers/upload
 
 Headers:
 
-```text
+```http
 Authorization: Bearer <token>
-X-User-Email: ashish@example.com
 ```
 
 Body:
@@ -244,40 +479,262 @@ Body:
 form-data
 key: file
 type: File
-value: select PDF
+value: select PDF file
 ```
 
-Get paper:
+---
+
+### Get Paper by ID
 
 ```http
-GET http://localhost:8080/papers/{paperId}
+GET /papers/{paperId}
 ```
 
-Delete paper:
+Example:
 
 ```http
-DELETE http://localhost:8080/papers/{paperId}
+GET http://localhost:8080/papers/1
 ```
 
-### AI Analysis APIs
-
-Trigger analysis:
+Headers:
 
 ```http
-POST http://localhost:8080/analysis/{paperId}
+Authorization: Bearer <token>
 ```
 
-Get analysis:
+---
+
+### Delete Paper
 
 ```http
-GET http://localhost:8080/analysis/{paperId}
+DELETE /papers/{paperId}
 ```
 
-Delete analysis:
+Example:
 
 ```http
-DELETE http://localhost:8080/analysis/{paperId}
+DELETE http://localhost:8080/papers/1
 ```
+
+Headers:
+
+```http
+Authorization: Bearer <token>
+```
+
+This deletes paper metadata from MySQL and publishes a delete event so related AI analysis can be removed from MongoDB.
+
+---
+
+## AI Analysis APIs
+
+All analysis APIs require authentication.
+
+Header:
+
+```http
+Authorization: Bearer <token>
+```
+
+---
+
+### Trigger Analysis Manually
+
+```http
+POST /analysis/{paperId}
+```
+
+Example:
+
+```http
+POST http://localhost:8080/analysis/1
+```
+
+Usually analysis is triggered automatically after upload using RabbitMQ. This endpoint is useful for manual retry/testing.
+
+---
+
+### Get All Analyses
+
+```http
+GET /analysis
+```
+
+Example:
+
+```http
+GET http://localhost:8080/analysis
+```
+
+---
+
+### Get Analysis by Paper ID
+
+```http
+GET /analysis/{paperId}
+```
+
+Example:
+
+```http
+GET http://localhost:8080/analysis/1
+```
+
+---
+
+### Get Dashboard Analyses for Logged-in User
+
+```http
+GET /analysis/dashboard
+```
+
+Example:
+
+```http
+GET http://localhost:8080/analysis/dashboard
+```
+
+The API Gateway injects the logged-in user email internally using the JWT token.
+
+---
+
+### Delete Analysis by Paper ID
+
+```http
+DELETE /analysis/{paperId}
+```
+
+Example:
+
+```http
+DELETE http://localhost:8080/analysis/1
+```
+
+---
+
+## Insight APIs
+
+All insight APIs require authentication.
+
+Header:
+
+```http
+Authorization: Bearer <token>
+```
+
+---
+
+### Get Detailed Paper Insights
+
+```http
+GET /insights/paper/{paperId}
+```
+
+Example:
+
+```http
+GET http://localhost:8080/insights/paper/1
+```
+
+Response example:
+
+```json
+{
+  "markdown": "# Paper Insights\n\n..."
+}
+```
+
+---
+
+### Compare Papers
+
+```http
+POST /insights/compare
+```
+
+Example:
+
+```http
+POST http://localhost:8080/insights/compare
+```
+
+Request body:
+
+```json
+{
+  "paperIds": [1, 2]
+}
+```
+
+Response example:
+
+```json
+{
+  "markdown": "# Paper Comparison\n\n..."
+}
+```
+
+---
+
+### Discover Research Gaps
+
+```http
+POST /insights/research-gap
+```
+
+Example:
+
+```http
+POST http://localhost:8080/insights/research-gap
+```
+
+Request body:
+
+```json
+{
+  "paperIds": [1, 2, 3]
+}
+```
+
+Response example:
+
+```json
+{
+  "markdown": "# Research Gap Analysis\n\n..."
+}
+```
+
+---
+
+### Generate Literature Review
+
+```http
+POST /insights/literature-review
+```
+
+Example:
+
+```http
+POST http://localhost:8080/insights/literature-review
+```
+
+Request body:
+
+```json
+{
+  "paperIds": [1, 2, 3]
+}
+```
+
+Response example:
+
+```json
+{
+  "markdown": "# Literature Review\n\n..."
+}
+```
+
+---
 
 ## Database Access
 
@@ -307,7 +764,21 @@ USE researchiq_paper;
 SHOW TABLES;
 ```
 
-If using MySQL Workbench:
+Check papers:
+
+```sql
+USE researchiq_paper;
+SELECT * FROM papers;
+```
+
+Check users:
+
+```sql
+USE researchiq_auth;
+SELECT * FROM users;
+```
+
+Using MySQL Workbench:
 
 ```text
 Host: localhost
@@ -315,6 +786,34 @@ Port: 3307
 Username: root
 Password: value from .env
 ```
+
+---
+
+## RabbitMQ
+
+RabbitMQ dashboard:
+
+```text
+http://localhost:15672
+```
+
+Default credentials:
+
+```text
+username: guest
+password: guest
+```
+
+Common queues:
+
+```text
+paper.upload.queue
+paper.delete.queue
+```
+
+RabbitMQ is used to trigger asynchronous AI analysis after a paper upload and to handle cleanup events after deletion.
+
+---
 
 ## Docker Images
 
@@ -331,19 +830,27 @@ mysql:8.0
 rabbitmq:3-management
 ```
 
-To rebuild a service image manually:
+Build all services using Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+Rebuild one service manually:
 
 ```bash
 cd auth-service
-mvn clean package
-docker build -t auth-service .
+mvn clean package -DskipTests
+docker build -t auth-service:latest .
 ```
 
-Then restart Compose:
+Restart one service:
 
 ```bash
-docker compose up -d
+docker compose up -d --no-deps --force-recreate auth-service
 ```
+
+---
 
 ## Project Structure
 
@@ -355,6 +862,7 @@ ResearchIQ/
 ├── paper-service/
 ├── ai-analysis-service/
 ├── insight-service/
+├── researchiq-frontend/
 ├── mysql/
 │   └── init.sql
 ├── docker-compose.yml
@@ -363,21 +871,127 @@ ResearchIQ/
 └── README.md
 ```
 
+---
+
 ## Important Notes
 
-* The frontend should call only the API Gateway.
-* Service-to-service communication happens through Eureka and Docker networking.
-* MySQL and RabbitMQ run in Docker.
-* MongoDB is hosted on MongoDB Atlas.
-* Secrets must be stored in `.env`, not committed to GitHub.
-* Rotate any secrets that were previously exposed before making the repository public.
+- The frontend should call only the API Gateway.
+- Do not expose individual microservices directly to the frontend.
+- Service-to-service communication happens through Docker networking, Eureka, and OpenFeign.
+- MySQL and RabbitMQ run in Docker.
+- MongoDB is hosted on MongoDB Atlas.
+- Secrets must be stored in `.env`, not committed to GitHub.
+- Rotate any secrets that were previously exposed before making the repository public.
+- Gemini free-tier quota can cause `429 TOO_MANY_REQUESTS` errors during frequent testing.
+
+---
+
+## Recommended `.gitignore`
+
+```gitignore
+# Environment
+.env
+*.env
+!.env.example
+
+# Maven / Java
+target/
+*.jar
+
+# Node / React
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+```
+
+---
+
+## GitHub Setup
+
+Initialize Git from the project root:
+
+```bash
+git init
+git add .
+git commit -m "Initial commit: ResearchIQ full-stack microservices platform"
+```
+
+Create a GitHub repository, then push:
+
+```bash
+git branch -M main
+git remote add origin https://github.com/your-username/researchiq-ai-paper-platform.git
+git push -u origin main
+```
+
+Recommended repository name:
+
+```text
+researchiq-ai-paper-platform
+```
+
+Recommended repository description:
+
+```text
+Full-stack AI research paper intelligence platform built with React and Spring Boot microservices, featuring JWT auth, RabbitMQ async processing, MySQL, MongoDB, Cloudinary, Gemini API, Eureka, Docker, and Spring Cloud Gateway.
+```
+
+Recommended topics:
+
+```text
+spring-boot
+microservices
+spring-cloud
+api-gateway
+eureka
+jwt-authentication
+rabbitmq
+mysql
+mongodb
+docker
+docker-compose
+react
+vite
+tailwindcss
+gemini-api
+cloudinary
+ai
+research-paper-analysis
+```
+
+---
 
 ## Future Improvements
 
-* Swagger/OpenAPI documentation
-* GitHub Actions CI/CD
-* Centralized logging
-* Redis caching
-* Role-based authorization
-* Cloud deployment using a VM or container hosting platform
-* React frontend integration
+- Swagger/OpenAPI documentation
+- GitHub Actions CI/CD
+- Centralized logging using ELK or Grafana Loki
+- Redis caching
+- Role-based authorization
+- Retry and dead-letter queue support for RabbitMQ
+- AI quota fallback and retry handling
+- Kubernetes deployment
+- Cloud deployment on AWS/GCP/Azure
+- Unit and integration tests
+- Frontend deployment integration
+
+---
+
+## Author
+
+Ashish Kumar

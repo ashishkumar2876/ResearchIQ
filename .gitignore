@@ -1,20 +1,12 @@
-# Maven
-target/
 
 # IntelliJ
 .idea/
 *.iml
 
-# VS Code
-.vscode/
-
 # Eclipse
 .project
 .classpath
 .settings/
-
-# Logs
-*.log
 
 # OS Files
 .DS_Store
@@ -30,3 +22,21 @@ target/
 *.log
 .idea/
 .vscode/
+
+
+# Maven
+target/
+*.jar
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+logs/
+*.log
+
+# Node frontend if present
+node_modules/
+dist/

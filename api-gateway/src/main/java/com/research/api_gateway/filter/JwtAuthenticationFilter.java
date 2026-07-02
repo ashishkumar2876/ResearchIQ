@@ -8,6 +8,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -19,7 +20,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
-    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtUtil jwtUtil;
 
@@ -30,29 +32,42 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         long startTime = System.currentTimeMillis();
 
         String path = exchange.getRequest().getURI().getPath();
-        String method = exchange.getRequest().getMethod().name();
+        HttpMethod httpMethod = exchange.getRequest().getMethod();
+        String method = httpMethod != null ? httpMethod.name() : "UNKNOWN";
 
         String requestId = UUID.randomUUID().toString();
 
         log.info("Incoming Request => ID={}, Method={}, Path={}",
                 requestId, method, path);
 
-        // Public APIs
-        if (path.startsWith("/auth/login") ||
-                path.startsWith("/auth/register")) {
+        // 1. Allow browser CORS preflight request
+        // React/browser sends OPTIONS before actual POST/PUT/DELETE when Authorization/custom headers are used.
+        if (HttpMethod.OPTIONS.equals(httpMethod)) {
+            log.info("Preflight request allowed => ID={}, Path={}", requestId, path);
 
-            log.info("Public endpoint accessed => ID={}, Path={}", requestId, path);
             return chain.filter(exchange)
                     .doFinally(signal -> logResponse(exchange, requestId, startTime));
         }
 
+        // 2. Public APIs
+        if (path.startsWith("/auth/login") ||
+                path.startsWith("/auth/register")) {
+
+            log.info("Public endpoint accessed => ID={}, Path={}", requestId, path);
+
+            return chain.filter(exchange)
+                    .doFinally(signal -> logResponse(exchange, requestId, startTime));
+        }
+
+        // 3. Protected APIs need Authorization header
         String authHeader = exchange.getRequest()
                 .getHeaders()
                 .getFirst(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 
-            log.warn("Missing/invalid Authorization header => ID={}, Path={}", requestId, path);
+            log.warn("Missing/invalid Authorization header => ID={}, Path={}",
+                    requestId, path);
 
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
@@ -60,6 +75,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         String token = authHeader.substring(7);
 
+        // 4. Validate JWT token
         if (!jwtUtil.validateToken(token)) {
 
             log.warn("Invalid JWT token => ID={}, Path={}", requestId, path);
@@ -68,27 +84,35 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return exchange.getResponse().setComplete();
         }
 
+        // 5. Extract user details from token
         String email = jwtUtil.getUsername(token);
         Long userId = jwtUtil.getUserId(token);
 
         log.info("Authenticated user => ID={}, userId={}, email={}",
                 requestId, userId, email);
 
+        // 6. Forward user info to downstream services
         ServerWebExchange mutatedExchange = exchange.mutate()
                 .request(
                         exchange.getRequest()
                                 .mutate()
-                                .header("X-User-Email", email)
-                                .header("X-User-Id", String.valueOf(userId))
-                                .header("X-Request-Id", requestId)
-                                .build())
+                                .headers(headers -> {
+                                    headers.set("X-User-Email", email);
+                                    headers.set("X-User-Id", String.valueOf(userId));
+                                    headers.set("X-Request-Id", requestId);
+                                })
+                                .build()
+                )
                 .build();
 
         return chain.filter(mutatedExchange)
-                .doFinally(signal -> logResponse(exchange, requestId, startTime));
+                .doFinally(signal -> logResponse(mutatedExchange, requestId, startTime));
     }
 
-    private void logResponse(ServerWebExchange exchange, String requestId, long startTime) {
+    private void logResponse(ServerWebExchange exchange,
+                             String requestId,
+                             long startTime) {
+
         long timeTaken = System.currentTimeMillis() - startTime;
 
         log.info("Response completed => ID={}, Status={}, Time={}ms",

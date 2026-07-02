@@ -53,6 +53,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       EUREKA_SERVER_URL: http://discovery-service:8761/eureka/
       JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
 
   paper-service:
     image: paper-service:latest
@@ -72,10 +73,16 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       EUREKA_SERVER_URL: http://discovery-service:8761/eureka/
+
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
 
   ai-analysis-service:
     image: ai-analysis-service:latest
@@ -84,12 +91,29 @@ services:
     ports:
       - "8083:8083"
     depends_on:
+      rabbitmq:
+        condition: service_healthy
+      paper-service:
+        condition: service_started
       discovery-service:
         condition: service_started
     environment:
       EUREKA_SERVER_URL: http://discovery-service:8761/eureka/
+
+      PAPER_SERVICE_URL: http://paper-service:8082
+
       MONGO_URI: ${MONGO_URI}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
 
   insight-service:
     image: insight-service:latest

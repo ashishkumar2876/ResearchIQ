@@ -12,128 +12,177 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.time.Duration;
 import java.util.List;
 
 @Slf4j
 @Service
 public class AiAnalysisServiceImpl implements AiAnalysisService {
 
-    private final WebClient webClient;
-    private final ObjectMapper objectMapper;
-    private final PaperAnalysisRepository paperAnalysisRepository;
+        private final WebClient webClient;
+        private final ObjectMapper objectMapper;
+        private final PaperAnalysisRepository paperAnalysisRepository;
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
+        @Value("${gemini.api.key}")
+        private String apiKey;
 
-    public AiAnalysisServiceImpl(
-            WebClient webClient,
-            ObjectMapper objectMapper,
-            PaperAnalysisRepository paperAnalysisRepository) {
+        public AiAnalysisServiceImpl(
+                        WebClient webClient,
+                        ObjectMapper objectMapper,
+                        PaperAnalysisRepository paperAnalysisRepository) {
 
-        this.webClient = webClient;
-        this.objectMapper = objectMapper;
-        this.paperAnalysisRepository = paperAnalysisRepository;
-    }
+                this.webClient = webClient;
+                this.objectMapper = objectMapper;
+                this.paperAnalysisRepository = paperAnalysisRepository;
+        }
 
-    @Override
-    public AnalysisResponse analyzePaper(String paperText) {
+        @Override
+        public AnalysisResponse analyzePaper(String paperText) {
 
-        log.info("Starting AI analysis");
+                log.info("Starting AI analysis");
 
-        String prompt = """
-                You are an expert research paper reviewer.
-
-                Analyze the following research paper.
-
-                Return ONLY valid JSON.
-
-                Do not include markdown.
-                Do not include ```json.
-                Do not explain anything.
-
-                Return exactly this format:
-
-                {
-                  "summary": "",
-                  "keywords": [],
-                  "researchDomain": "",
-                  "noveltyScore": 0,
-                  "researchGap": "",
-                  "futureWork": "",
-                  "limitations": "",
-                  "difficulty": ""
+                if (paperText == null || paperText.isBlank()) {
+                        throw new RuntimeException("Paper text is empty. PDF extraction failed.");
                 }
 
-                Research Paper:
+                log.info("Extracted paper text length: {}", paperText.length());
 
-                %s
-                """.formatted(paperText);
+                // Gemini can fail if text is too large
+                int maxChars = 30000;
 
-        GeminiRequest request = new GeminiRequest(
-                List.of(
-                        new GeminiRequest.Content(
+                if (paperText.length() > maxChars) {
+                        log.warn("Paper text is too large. Trimming from {} to {} characters", paperText.length(),
+                                        maxChars);
+                        paperText = paperText.substring(0, maxChars);
+                }
+
+                String prompt = """
+                                You are an expert research paper reviewer.
+
+                                Analyze the following research paper.
+
+                                Return ONLY valid JSON.
+                                Do not include markdown.
+                                Do not include ```json.
+                                Do not explain anything.
+
+                                Return exactly this format:
+
+                                {
+                                  "summary": "",
+                                  "keywords": [],
+                                  "researchDomain": "",
+                                  "noveltyScore": 0,
+                                  "researchGap": "",
+                                  "futureWork": "",
+                                  "limitations": "",
+                                  "difficulty": ""
+                                }
+
+                                Research Paper:
+
+                                %s
+                                """.formatted(paperText);
+
+                GeminiRequest request = new GeminiRequest(
                                 List.of(
-                                        new GeminiRequest.Part(prompt)))));
+                                                new GeminiRequest.Content(
+                                                                List.of(
+                                                                                new GeminiRequest.Part(prompt)))));
 
-        log.info("Sending request to Gemini");
+                try {
+                        log.info("Sending request to Gemini");
 
-        GeminiResponse response = webClient.post()
-                .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
-                        + apiKey)
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(GeminiResponse.class)
-                .block();
+                        GeminiResponse response = webClient.post()
+                                        .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
+                                                        + apiKey)
+                                        .bodyValue(request)
+                                        .retrieve()
+                                        .bodyToMono(GeminiResponse.class)
+                                        .timeout(Duration.ofSeconds(60))
+                                        .block();
 
-        log.info("Received response from Gemini");
+                        log.info("Received response from Gemini");
 
-        String json = response.getCandidates()
-                .get(0)
-                .getContent()
-                .getParts()
-                .get(0)
-                .getText();
+                        if (response == null ||
+                                        response.getCandidates() == null ||
+                                        response.getCandidates().isEmpty() ||
+                                        response.getCandidates().get(0).getContent() == null ||
+                                        response.getCandidates().get(0).getContent().getParts() == null ||
+                                        response.getCandidates().get(0).getContent().getParts().isEmpty()) {
 
-        try {
+                                log.error("Invalid Gemini response: {}", response);
+                                throw new RuntimeException("Invalid Gemini response");
+                        }
 
-            AnalysisResponse analysis =
-                    objectMapper.readValue(json, AnalysisResponse.class);
+                        String json = response.getCandidates()
+                                        .get(0)
+                                        .getContent()
+                                        .getParts()
+                                        .get(0)
+                                        .getText();
 
-            log.info("Successfully parsed Gemini response");
+                        log.info("Raw Gemini response: {}", json);
 
-            return analysis;
+                        json = cleanGeminiJson(json);
 
-        } catch (Exception e) {
+                        AnalysisResponse analysis = objectMapper.readValue(json, AnalysisResponse.class);
 
-            log.error("Failed to parse Gemini response", e);
+                        log.info("Successfully parsed Gemini response");
 
-            throw new RuntimeException("Failed to parse Gemini response", e);
+                        return analysis;
+
+                } catch (WebClientResponseException e) {
+
+                        log.error("Gemini API failed. Status: {}", e.getStatusCode());
+                        log.error("Gemini API error body: {}", e.getResponseBodyAsString());
+
+                        throw new RuntimeException("Gemini API failed: " + e.getResponseBodyAsString(), e);
+
+                } catch (Exception e) {
+
+                        log.error("AI analysis failed", e);
+
+                        throw new RuntimeException("AI analysis failed: " + e.getMessage(), e);
+                }
         }
-    }
 
-    @Override
-    public List<PaperAnalysis> getAllAnalyses() {
+        @Override
+        public List<PaperAnalysis> getAllAnalyses() {
 
-        log.info("Fetching all analyses");
+                log.info("Fetching all analyses");
 
-        return paperAnalysisRepository.findAll();
-    }
+                return paperAnalysisRepository.findAll();
+        }
 
-    @Override
-    public PaperAnalysis getAnalysisByPaperId(Long paperId) {
+        @Override
+        public PaperAnalysis getAnalysisByPaperId(Long paperId) {
 
-        log.info("Fetching analysis for Paper ID={}", paperId);
+                log.info("Fetching analysis for Paper ID={}", paperId);
 
-        return paperAnalysisRepository.findByPaperId(paperId)
-                .orElseThrow(() -> new AnalysisNotFoundException("Analysis Not Found"));
-    }
+                return paperAnalysisRepository.findByPaperId(paperId)
+                                .orElseThrow(() -> new AnalysisNotFoundException("Analysis Not Found"));
+        }
 
-    @Override
-    public List<PaperAnalysis> getDashboard(String uploadedBy) {
+        @Override
+        public List<PaperAnalysis> getDashboard(String uploadedBy) {
 
-        log.info("Fetching dashboard for user '{}'", uploadedBy);
+                log.info("Fetching dashboard for user '{}'", uploadedBy);
 
-        return paperAnalysisRepository.findByUploadedBy(uploadedBy);
-    }
+                return paperAnalysisRepository.findByUploadedBy(uploadedBy);
+        }
+
+        private String cleanGeminiJson(String text) {
+
+                if (text == null) {
+                        throw new RuntimeException("Gemini returned empty response");
+                }
+
+                return text
+                                .replace("```json", "")
+                                .replace("```", "")
+                                .trim();
+        }
 }
