@@ -1,0 +1,2 @@
+CREATE DATABASE IF NOT EXISTS researchiq_auth;
+CREATE DATABASE IF NOT EXISTS researchiq_paper;

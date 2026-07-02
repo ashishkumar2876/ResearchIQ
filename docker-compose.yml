@@ -1,0 +1,123 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  discovery-service:
+    image: discovery-service:latest
+    container_name: discovery-service
+    restart: always
+    ports:
+      - "8761:8761"
+
+  auth-service:
+    image: auth-service:latest
+    container_name: auth-service
+    restart: always
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_started
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/researchiq_auth
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET}
+
+  paper-service:
+    image: paper-service:latest
+    container_name: paper-service
+    restart: always
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      discovery-service:
+        condition: service_started
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/researchiq_paper
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka/
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+
+  ai-analysis-service:
+    image: ai-analysis-service:latest
+    container_name: ai-analysis-service
+    restart: always
+    ports:
+      - "8083:8083"
+    depends_on:
+      discovery-service:
+        condition: service_started
+    environment:
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka/
+      MONGO_URI: ${MONGO_URI}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+
+  insight-service:
+    image: insight-service:latest
+    container_name: insight-service
+    restart: always
+    ports:
+      - "8084:8084"
+    depends_on:
+      discovery-service:
+        condition: service_started
+    environment:
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka/
+      MONGO_URI: ${MONGO_URI}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+
+  api-gateway:
+    image: api-gateway:latest
+    container_name: api-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      discovery-service:
+        condition: service_started
+    environment:
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+
+volumes:
+  mysql-data:
